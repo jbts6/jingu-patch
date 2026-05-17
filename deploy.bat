@@ -23,10 +23,10 @@ echo Game directory : %GAME_DIR%
 echo.
 
 echo [1/4] Building Stubs...
-msbuild "%SRC_DIR%\Stubs\Stubs.csproj" /p:Configuration=Release /verbosity:minimal
+powershell -Command "& 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' '%SRC_DIR%\Stubs\Stubs.csproj' /p:Configuration=Release /verbosity:minimal"
 
 echo [2/4] Building all projects...
-msbuild "%TOOL_DIR%\JinguPatcher.sln" /p:Configuration=Release /verbosity:minimal
+powershell -Command "& 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' '%TOOL_DIR%\JinguPatcher.sln' /p:Configuration=Release /verbosity:minimal"
 
 echo [3/4] Packaging to tool directory...
 if not exist "%TOOL_DIR%\Mods" mkdir "%TOOL_DIR%\Mods"

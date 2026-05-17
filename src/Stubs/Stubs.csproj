@@ -33,7 +33,10 @@
     <Reference Include="System.Core"/>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DBLoad.cs" />
+    <Compile Include="DBLoad\*.cs" />
+    <Compile Include="UI\*.cs" />
+    <Compile Include="Core\*.cs" />
+    <Compile Include="Pool\*.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

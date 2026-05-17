@@ -306,22 +306,18 @@ namespace JinguPatcher
                 insertPoint = target.Body.Instructions[0];
 
                 il.InsertBefore(insertPoint, callInstr);
-                for (int i = argLoads.Count - 1; i >= 0; i--)
+                for (int i = 0; i < argLoads.Count; i++)
                     il.InsertBefore(callInstr, argLoads[i]);
             }
             else
             {
-                var rets = target.Body.Instructions
-                    .Where(i => i.OpCode == OpCodes.Ret).ToList();
-
-                foreach (var ret in rets)
+                var lastRet = target.Body.Instructions
+                    .LastOrDefault(i => i.OpCode == OpCodes.Ret);
+                if (lastRet != null)
                 {
-                    var newCall = il.Create(OpCodes.Call, patch);
-                    var newArgLoads = BuildArgLoads(il, target, patch);
-
-                    il.InsertBefore(ret, newCall);
-                    for (int i = newArgLoads.Count - 1; i >= 0; i--)
-                        il.InsertBefore(newCall, newArgLoads[i]);
+                    il.InsertBefore(lastRet, callInstr);
+                    for (int i = 0; i < argLoads.Count; i++)
+                        il.InsertBefore(callInstr, argLoads[i]);
                 }
             }
 
@@ -332,17 +328,22 @@ namespace JinguPatcher
                         && !argLoads.Contains(i));
                 if (firstOriginal == null) firstOriginal = target.Body.Instructions[0];
 
-                var skipLabel = il.Create(OpCodes.Nop);
-                il.InsertAfter(callInstr, il.Create(OpCodes.Brtrue_S, skipLabel));
+                var continueLabel = il.Create(OpCodes.Nop);
+                il.InsertBefore(firstOriginal, continueLabel);
 
                 if (target.ReturnType.FullName != "System.Void")
                 {
                     var defaultVal = GetDefaultLoad(il, target.ReturnType);
-                    foreach (var v in defaultVal)
-                        il.InsertBefore(skipLabel, v);
+                    il.InsertAfter(callInstr, il.Create(OpCodes.Brfalse_S, continueLabel));
+                    for (int i = defaultVal.Count - 1; i >= 0; i--)
+                        il.InsertAfter(callInstr, defaultVal[i]);
+                    il.InsertAfter(callInstr, il.Create(OpCodes.Ret));
                 }
-                il.InsertBefore(skipLabel, il.Create(OpCodes.Ret));
-                il.InsertBefore(firstOriginal, skipLabel);
+                else
+                {
+                    il.InsertAfter(callInstr, il.Create(OpCodes.Brtrue_S, continueLabel));
+                    il.InsertAfter(callInstr, il.Create(OpCodes.Ret));
+                }
             }
             else if (patch.ReturnType.FullName != "System.Void" && kind == "Prefix")
             {
@@ -387,11 +388,25 @@ namespace JinguPatcher
         {
             var loads = new List<Instruction>();
             bool isInstance = !target.IsStatic;
+            int targetStartArg = isInstance ? 1 : 0;
 
-            for (int pi = 0; pi < patch.Parameters.Count; pi++)
+            int patchParamCount = patch.Parameters.Count;
+
+            bool hasInstance = isInstance && patchParamCount > 0
+                && patch.Parameters[0].Name == "__instance";
+            if (hasInstance)
             {
-                int argIdx = isInstance ? pi + 1 : pi;
-                bool isByRef = patch.Parameters[pi].ParameterType.IsByReference;
+                loads.Add(il.Create(OpCodes.Ldarg_0));
+            }
+
+            int startIdx = hasInstance ? 1 : 0;
+            int count = Math.Min(target.Parameters.Count, patchParamCount - startIdx);
+
+            for (int pi = 0; pi < count; pi++)
+            {
+                int argIdx = targetStartArg + pi;
+                int patchPi = startIdx + pi;
+                bool isByRef = patch.Parameters[patchPi].ParameterType.IsByReference;
 
                 if (isByRef)
                 {
