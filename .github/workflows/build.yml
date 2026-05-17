@@ -47,6 +47,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: release\JinguPatcher\**\*
+          files: |
+            release/JinguPatcher/JinguPatcher.exe
+            release/JinguPatcher/Mono.Cecil.dll
+            release/JinguPatcher/JinguMod.dll
+            release/JinguPatcher/Mods/JinguModPatch.dll
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
