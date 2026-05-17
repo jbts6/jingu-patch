@@ -304,20 +304,34 @@ namespace JinguPatcher
             if (kind == "Prefix")
             {
                 insertPoint = target.Body.Instructions[0];
+
+                il.InsertBefore(insertPoint, callInstr);
+                for (int i = argLoads.Count - 1; i >= 0; i--)
+                    il.InsertBefore(callInstr, argLoads[i]);
             }
             else
             {
-                insertPoint = target.Body.Instructions
-                    .LastOrDefault(i => i.OpCode == OpCodes.Ret)
-                    ?? target.Body.Instructions[0];
-            }
+                var rets = target.Body.Instructions
+                    .Where(i => i.OpCode == OpCodes.Ret).ToList();
 
-            il.InsertBefore(insertPoint, callInstr);
-            for (int i = argLoads.Count - 1; i >= 0; i--)
-                il.InsertBefore(callInstr, argLoads[i]);
+                foreach (var ret in rets)
+                {
+                    var newCall = il.Create(OpCodes.Call, patch);
+                    var newArgLoads = BuildArgLoads(il, target, patch);
+
+                    il.InsertBefore(ret, newCall);
+                    for (int i = newArgLoads.Count - 1; i >= 0; i--)
+                        il.InsertBefore(newCall, newArgLoads[i]);
+                }
+            }
 
             if (patch.ReturnType.FullName == "System.Boolean" && kind == "Prefix")
             {
+                var firstOriginal = target.Body.Instructions
+                    .FirstOrDefault(i => i.OpCode != OpCodes.Nop && i != callInstr
+                        && !argLoads.Contains(i));
+                if (firstOriginal == null) firstOriginal = target.Body.Instructions[0];
+
                 var skipLabel = il.Create(OpCodes.Nop);
                 il.InsertAfter(callInstr, il.Create(OpCodes.Brtrue_S, skipLabel));
 
@@ -328,9 +342,9 @@ namespace JinguPatcher
                         il.InsertBefore(skipLabel, v);
                 }
                 il.InsertBefore(skipLabel, il.Create(OpCodes.Ret));
-                il.InsertBefore(insertPoint, skipLabel);
+                il.InsertBefore(firstOriginal, skipLabel);
             }
-            else if (patch.ReturnType.FullName != "System.Void")
+            else if (patch.ReturnType.FullName != "System.Void" && kind == "Prefix")
             {
                 il.InsertAfter(callInstr, il.Create(OpCodes.Pop));
             }

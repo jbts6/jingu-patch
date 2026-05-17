@@ -6,8 +6,8 @@ namespace DBLoad
 
     public class HuntBow
     {
-        // Ö»ÉùÃ÷²¹¶¡·½·¨Ç©ÃûÖÐÓÃµ½µÄ³ÉÔ±
-        // ±ÈÈç Init ·½·¨ÓÃµ½Ê²Ã´×Ö¶Î£¬¾Í¼ÓÊ²Ã´
+        // Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç©ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½Ä³ï¿½Ô±
+        // ï¿½ï¿½ï¿½ï¿½ Init ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½Ê²Ã´ï¿½Ö¶Î£ï¿½ï¿½Í¼ï¿½Ê²Ã´
         public static Dictionary<int, HuntBowData> Dic
         {
             get
@@ -42,7 +42,20 @@ namespace DBLoad
         public readonly int m_damage;
     }
 
-    public class FishRod {
+    public class FishRod
+    {
+        public static Dictionary<int, FishRodData> Dic
+        {
+            get
+            {
+                if (FishRod.m_dic == null)
+                {
+                    FishRod.Init();
+                }
+                return FishRod.m_dic;
+            }
+        }
+        public static void Init() { }
         public static Dictionary<int, FishRodData> m_dic;
     }
 

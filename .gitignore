@@ -24,3 +24,8 @@ Desktop.ini
 ## Temp
 *.tmp
 *.bak
+
+## Generated / Deploy
+JinguMod.dll
+Mono.Cecil.dll
+Mods/
