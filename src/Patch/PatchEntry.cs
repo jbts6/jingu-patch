@@ -51,21 +51,18 @@ namespace JinguModPatch
         {
             if (Hunt.Dic != null)
             {
-                if (Hunt.Dic.ContainsKey(101))
+                HuntData[] dataList = new HuntData[] {
+                    new HuntData(101, new int[] { 40202 }, new int[] { 100 }, new int[] { 100 }, 120, 85, 12, 0, 10, 5),
+                    new HuntData(104, new int[] { 40203 }, new int[] { 100 }, new int[] { 100 }, 250, 130, 14, 0, 15, 7),
+                    new HuntData(110, new int[] { 40204 }, new int[] { 100 }, new int[] { 100 }, 500, 160, 20, 16, 25, 10),
+                    new HuntData(116, new int[] { 40210 }, new int[] { 100 }, new int[] { 100 }, 450, 170, 18, 16, 25, 10),
+                };
+                foreach (var data in dataList)
                 {
-                    Hunt.Dic[101] = new HuntData(101, new int[] { 40202 }, new int[] { 100 }, new int[] { 100 }, 120, 85, 12, 0, 10, 5);
-                }
-                if (Hunt.Dic.ContainsKey(104))
-                {
-                    Hunt.Dic[104] = new HuntData(104, new int[] { 40203 }, new int[] { 100 }, new int[] { 100 }, 250, 130, 14, 0, 15, 7);
-                }
-                if (Hunt.Dic.ContainsKey(110))
-                {
-                    Hunt.Dic[110] = new HuntData(110, new int[] { 40204 }, new int[] { 100 }, new int[] { 100 }, 500, 160, 20, 16, 25, 10);
-                }
-                if (Hunt.Dic.ContainsKey(116))
-                {
-                    Hunt.Dic[116] = new HuntData(116, new int[] { 40210 }, new int[] { 100 }, new int[] { 100 }, 450, 170, 18, 16, 25, 10);
+                    if (Hunt.Dic.ContainsKey(data.m_id))   // 假设有 ID 属性；若无则可用字段名如 m_id
+                    {
+                        Hunt.Dic[data.m_id] = data;
+                    }
                 }
 
             }
@@ -75,7 +72,7 @@ namespace JinguModPatch
         {
             if (Reward.Dic != null)
             {
-                RewardData[] rewardDataList = new RewardData[]
+                RewardData[] dataList = new RewardData[]
                 {
                     new RewardData(1001, new int[] { 90007, 91010, 91010, 91010, 91010 }, new int[] { 100, 100, 100, 100, 100 }, new int[] { 100, 200, 200, 200, 200 }, new int[] { 0, 3, 5, 7, 9 }, 308, 15),
                     new RewardData(1002, new int[] { 90005, 91011, 91011, 91011, 91011 }, new int[] { 100, 100, 100, 100, 100 }, new int[] { 100, 200, 200, 200, 200 }, new int[] { 0, 3, 5, 7, 9 }, 308, 15),
@@ -128,7 +125,7 @@ namespace JinguModPatch
                     new RewardData(30009, new int[] { 1, 2, 12, 7, 12, 9, 101 }, new int[] { 1, 1, 1, 1, 1, 1, 1 }, new int[] { 1, 1, 1, 5, 5, 40, 200 }, new int[] { 0, 0, 0, 0, 2, 4, 5 }, 304, 120)
                 };
 
-                foreach (var data in rewardDataList)
+                foreach (var data in dataList)
                 {
                     if (Reward.Dic.ContainsKey(data.m_id))   // 假设有 ID 属性；若无则可用字段名如 m_id
                     {
@@ -142,7 +139,7 @@ namespace JinguModPatch
         {
             if (GlobalBuff.Dic != null)
             {
-                GlobalBuffData[] globalBuffDataList = new GlobalBuffData[] {
+                GlobalBuffData[] dataList = new GlobalBuffData[] {
                     new GlobalBuffData(101, "巧舌如簧", 3, new int[] { 9 }, new int[][] { new int[] { 702, 100 } }, "交易时卖出道具的价值提升100%"),
                     new GlobalBuffData(102, "赠礼有方", 2, new int[] { 9 }, new int[][] { new int[] { 709, 200 } }, "送礼后所增加的好感度提升200%"),
                     new GlobalBuffData(105, "化气之术", 1, new int[] { 9, 9 }, new int[][]
@@ -198,7 +195,7 @@ namespace JinguModPatch
                     new GlobalBuffData(1003, "垂云钓月", 4, new int[] { 9 }, new int[][] { new int[] { 727, -100 } }, "钓鱼按键失败惩罚时间降低100%")
                 };
 
-                foreach (var data in globalBuffDataList)
+                foreach (var data in dataList)
                     if (GlobalBuff.Dic.ContainsKey(data.m_id))
                     {
                         GlobalBuff.Dic[data.m_id] = data;
@@ -206,12 +203,150 @@ namespace JinguModPatch
             }
         }
 
+        /* 开局天赋轮回点配置 */
         public static void Postfix_Custom_Init()
         {
-            if (Custom.Dic != null && Custom.Dic.ContainsKey(141))
+            if (Custom.Dic != null)
             {
-                Custom.Dic[141] = new CustomData(141, 0, -50000, 0);
+                CustomData[] dataList = new CustomData[] {
+                    new CustomData(1, 1, 140, 0),
+                    new CustomData(2, 1, 180, 0),
+                    new CustomData(3, 1, 180, 0),
+                    new CustomData(4, 1, 140, 0),
+                    new CustomData(5, 1, 180, 0),
+                    new CustomData(6, 1, 180, 0),
+                    new CustomData(7, 1, 140, 0),
+                    new CustomData(8, 1, 140, 0),
+                    new CustomData(9, 1, 180, 300703),
+                    new CustomData(10, 1, 240, 0),
+                    new CustomData(11, 1, 240, 300803),
+                    new CustomData(12, 1, 140, 0),
+                    new CustomData(13, 1, 140, 100104),
+                    new CustomData(14, 1, 140, 0),
+                    new CustomData(15, 1, 140, 0),
+                    new CustomData(16, 1, 140, 0),
+                    new CustomData(17, 1, 180, 300503),
+                    new CustomData(18, 1, 180, 0),
+                    new CustomData(19, 1, 180, 100102),
+                    new CustomData(20, 1, 140, 0),
+                    new CustomData(21, 1, 140, 0),
+                    new CustomData(22, 1, 140, 0),
+                    new CustomData(23, 1, 240, 100603),
+                    new CustomData(24, 1, 240, 300104),
+                    new CustomData(25, 1, 240, 100503),
+                    new CustomData(26, 1, 240, 0),
+                    new CustomData(27, 1, 240, 0),
+                    new CustomData(28, 1, 240, 0),
+                    new CustomData(29, 1, 240, 0),
+                    new CustomData(101, 0, 180, 0),
+                    new CustomData(102, 0, 140, 0),
+                    new CustomData(103, 0, 240, 0),
+                    new CustomData(104, 0, 240, 300204),
+                    new CustomData(105, 0, 100, 0),
+                    new CustomData(106, 0, 70, 0),
+                    new CustomData(107, 0, 140, 0),
+                    new CustomData(110, 0, 70, 0),
+                    new CustomData(111, 0, 140, 0),
+                    new CustomData(112, 0, 240, 100204),
+                    new CustomData(113, 0, 180, 0),
+                    new CustomData(114, 0, 180, 0),
+                    new CustomData(115, 0, 180, 0),
+                    new CustomData(116, 0, 180, 0),
+                    new CustomData(117, 0, 180, 0),
+                    new CustomData(118, 0, 180, 0),
+                    new CustomData(119, 0, 180, 0),
+                    new CustomData(120, 0, 180, 0),
+                    new CustomData(121, 0, 140, 0),
+                    new CustomData(122, 0, 240, 100303),
+                    new CustomData(123, 0, 100, 0),
+                    new CustomData(124, 0, 240, 100404),
+                    new CustomData(125, 0, 180, 0),
+                    new CustomData(126, 0, 180, 300303),
+                    new CustomData(127, 0, 180, 300403),
+                    new CustomData(128, 0, 140, 101009),
+                    new CustomData(129, 0, 140, 101010),
+                    new CustomData(130, 0, 140, 101011),
+                    new CustomData(131, 0, 140, 101012),
+                    new CustomData(132, 0, 140, 101013),
+                    new CustomData(133, 0, 140, 101014),
+                    new CustomData(134, 0, 140, 101015),
+                    new CustomData(135, 0, 240, 0),
+                    new CustomData(136, 0, 100, 0),
+                    new CustomData(137, 0, 140, 101016),
+                    new CustomData(138, 0, 180, 300603),
+                    new CustomData(139, 0, 180, 0),
+                    new CustomData(140, 0, 100, 0),
+                    new CustomData(141, 0, -50000, 0),
+                    new CustomData(142, 0, 70, 0),
+                    new CustomData(201, 1, 100, 0),
+                    new CustomData(202, 1, 180, 0),
+                    new CustomData(203, 1, 100, 0),
+                    new CustomData(204, 1, 180, 0),
+                    new CustomData(205, 1, 100, 0),
+                    new CustomData(206, 1, 180, 0),
+                    new CustomData(207, 1, 100, 0),
+                    new CustomData(208, 1, 180, 0),
+                    new CustomData(209, 1, 100, 0),
+                    new CustomData(210, 1, 180, 0),
+                    new CustomData(211, 1, 100, 0),
+                    new CustomData(212, 1, 180, 0),
+                    new CustomData(213, 0, 140, 0),
+                    new CustomData(214, 0, 140, 0),
+                    new CustomData(215, 0, 140, 0),
+                    new CustomData(216, 0, 100, 0),
+                    new CustomData(217, 0, 180, 0),
+                    new CustomData(218, 1, 240, 0),
+                    new CustomData(219, 0, 100, 0),
+                    new CustomData(220, 0, 140, 0),
+                    new CustomData(221, 1, 240, 0),
+                    new CustomData(222, 0, 100, 0),
+                    new CustomData(223, 0, 140, 0),
+                    new CustomData(224, 1, 240, 0),
+                    new CustomData(225, 1, 240, 0),
+                    new CustomData(226, 1, 70, 0),
+                    new CustomData(227, 1, 70, 0),
+                    new CustomData(228, 1, 70, 0),
+                    new CustomData(1001, 1, 240, 200501),
+                    new CustomData(1002, 1, 180, 200502),
+                    new CustomData(1003, 0, 720, 200503),
+                    new CustomData(1004, 0, 720, 200504),
+                    new CustomData(1005, 0, 720, 200505)
+                };
+
+
+                foreach (var data in dataList)
+                    if (Custom.Dic.ContainsKey(data.m_id))
+                    {
+                        Custom.Dic[data.m_id] = data;
+                    }
             }
         }
+        
+        /* 被动效果 */
+        public static void Postfix_Passive_Init()
+        {
+            if (Passive.Dic != null)
+            {
+                PassiveData[] dataList = new PassiveData[] {
+                    new PassiveData(10250, "损元化劲", 1, 0, new int[] { 137 }, new int[][] { new int[] { 5, 100 } }, "造成伤害后扣除自身1%最大内力,附带10%扣除量的真实伤害", "燃己之内力,化为凌厉杀机"),
+                    new PassiveData(10300, "三尺气墙", 3, 0, new int[] { 65, 76 }, new int[][]
+                        {
+                            new int[] { 150 },
+                            new int[] { 100 }
+                        }, "受到伤害后,如果攻击者在自身周围一圈范围内,对其造成150点+100%自身所遭受伤害的真实伤害", "真气充盈在周身形成三尺气墙,受到伤害的同时能震伤对手"),
+                        new PassiveData(10790, "出生入死", 2, 0, new int[] { 89 }, new int[][] { new int[] { 100, 359 } }, "承受致命伤害时,气血最低降至1,回复100%最大气血,并获得【359】（每场战斗只生效一次）", "始之谓出,卒之谓入")
+                };
+                foreach (var data in dataList)
+                    if (Passive.Dic.ContainsKey(data.m_id))
+                    {
+                        Passive.Dic[data.m_id] = data;
+                    }
+            }
+        }
+
+        // public static bool Prefix_GlobalData_AchieveCompleted(int id, ref bool __result) {
+        //     __result = true;
+        //     return false;
+        // }
     }
 }
