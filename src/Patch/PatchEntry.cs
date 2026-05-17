@@ -40,5 +40,29 @@ namespace JinguModPatch
             HuntBow.m_dic[huntBowData.m_id] = huntBowData;
             return false;
         }
+
+
+        /* 修改渔具数据 */
+        public static bool Prefix_FishRod_Init()
+        {
+            FishRod.m_dic = new Dictionary<int, FishRodData>(8);
+            FishRodData fishRodData = new FishRodData(220001, 300, 300, 70);
+            FishRod.m_dic[fishRodData.m_id] = fishRodData;
+            fishRodData = new FishRodData(220002, 300, 300, 70);
+            FishRod.m_dic[fishRodData.m_id] = fishRodData;
+            fishRodData = new FishRodData(220003, 300, 300, 70);
+            FishRod.m_dic[fishRodData.m_id] = fishRodData;
+            fishRodData = new FishRodData(220004, 300, 300, 70);
+            FishRod.m_dic[fishRodData.m_id] = fishRodData;
+            fishRodData = new FishRodData(220005, 300, 300, 70);
+            FishRod.m_dic[fishRodData.m_id] = fishRodData;
+            fishRodData = new FishRodData(220006, 300, 300, 70);
+            FishRod.m_dic[fishRodData.m_id] = fishRodData;
+            fishRodData = new FishRodData(220007, 300, 300, 70);
+            FishRod.m_dic[fishRodData.m_id] = fishRodData;
+            fishRodData = new FishRodData(220008, 300, 300, 70);
+            FishRod.m_dic[fishRodData.m_id] = fishRodData;
+            return false;
+        }
     }
 }
