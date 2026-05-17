@@ -110,19 +110,38 @@ namespace JinguPatcher
                                         continue;
 
                                     string kind = parsed.Value.kind;
-                                    string targetTypeName = parsed.Value.typeName;
-                                    string targetMethodName = parsed.Value.methodName;
+                                    var candidates = parsed.Value.candidates;
 
-                                    var targetType = gameModule.GetType(targetTypeName);
-                                    if (targetType == null)
+                                    TypeDefinition targetType = null;
+                                    string targetMethodName = null;
+
+                                    foreach (var (typeName, methodName) in candidates)
                                     {
-                                        targetType = gameModule.GetTypes()
-                                            .FirstOrDefault(t => t.Name == targetTypeName);
+                                        // 先精确匹配全限定名
+                                        var t = gameModule.GetType(typeName);
+                                        if (t == null)
+                                        {
+                                            // 再按短名称匹配
+                                            t = gameModule.GetTypes()
+                                                .FirstOrDefault(tt => tt.Name == typeName);
+                                        }
+                                        if (t != null)
+                                        {
+                                            // 确认该类下确实有这个方法
+                                            var m = t.Methods.FirstOrDefault(mm => mm.Name == methodName);
+                                            if (m != null)
+                                            {
+                                                targetType = t;
+                                                targetMethodName = methodName;
+                                                break;
+                                            }
+                                        }
                                     }
+
                                     if (targetType == null)
                                     {
                                         Console.ForegroundColor = ConsoleColor.Yellow;
-                                        Console.WriteLine($"  [SKIP] Type not found: {targetTypeName}");
+                                        Console.WriteLine($"  [SKIP] Type not found for: {patchMethod.Name}");
                                         Console.ResetColor();
                                         continue;
                                     }
@@ -132,7 +151,7 @@ namespace JinguPatcher
                                     if (targetMethod == null)
                                     {
                                         Console.ForegroundColor = ConsoleColor.Yellow;
-                                        Console.WriteLine($"  [SKIP] Method not found: {targetTypeName}.{targetMethodName}");
+                                        Console.WriteLine($"  [SKIP] Method not found: {targetType.Name}.{targetMethodName}");
                                         Console.ResetColor();
                                         continue;
                                     }
@@ -141,9 +160,10 @@ namespace JinguPatcher
                                     InjectPatch(gameModule, targetMethod, importedPatch, kind);
 
                                     Console.ForegroundColor = ConsoleColor.Green;
-                                    Console.WriteLine($"  [OK] {kind}_{targetTypeName}_{targetMethodName}");
+                                    Console.WriteLine($"  [OK] {kind}_{targetType.Name}_{targetMethodName}");
                                     Console.ResetColor();
                                     totalPatches++;
+
                                 }
                             }
                         }
@@ -274,7 +294,7 @@ namespace JinguPatcher
             return null;
         }
 
-        static (string kind, string typeName, string methodName)? ParsePatchMethodName(string name)
+        static (string kind, List<(string typeName, string methodName)> candidates)? ParsePatchMethodName(string name)
         {
             int i1 = name.IndexOf('_');
             if (i1 < 0) return null;
@@ -282,14 +302,18 @@ namespace JinguPatcher
             if (kind != "Prefix" && kind != "Postfix") return null;
 
             string rest = name.Substring(i1 + 1);
-            int i2 = rest.IndexOf('_');
-            if (i2 < 0) return null;
+            string[] parts = rest.Split('_');
+            if (parts.Length < 2) return null;
 
-            string typeName = rest.Substring(0, i2);
-            string methodName = rest.Substring(i2 + 1);
-            if (string.IsNullOrEmpty(typeName) || string.IsNullOrEmpty(methodName)) return null;
+            var candidates = new List<(string typeName, string methodName)>();
+            for (int i = parts.Length - 1; i >= 1; i--)
+            {
+                string typeName = string.Join(".", parts, 0, i);
+                string methodName = string.Join("_", parts, i, parts.Length - i);
+                candidates.Add((typeName, methodName));
+            }
 
-            return (kind, typeName, methodName);
+            return (kind, candidates);
         }
 
         static void InjectPatch(ModuleDefinition module, MethodDefinition target,
@@ -300,25 +324,18 @@ namespace JinguPatcher
             var argLoads = BuildArgLoads(il, target, patch);
             var callInstr = il.Create(OpCodes.Call, patch);
 
-            Instruction insertPoint;
             if (kind == "Prefix")
             {
-                insertPoint = target.Body.Instructions[0];
+                FixCoroutineIL(target);
 
+                var insertPoint = target.Body.Instructions[0];
                 il.InsertBefore(insertPoint, callInstr);
                 for (int i = 0; i < argLoads.Count; i++)
                     il.InsertBefore(callInstr, argLoads[i]);
             }
             else
             {
-                var lastRet = target.Body.Instructions
-                    .LastOrDefault(i => i.OpCode == OpCodes.Ret);
-                if (lastRet != null)
-                {
-                    il.InsertBefore(lastRet, callInstr);
-                    for (int i = 0; i < argLoads.Count; i++)
-                        il.InsertBefore(callInstr, argLoads[i]);
-                }
+                InjectPostfixAllReturns(il, target, argLoads, callInstr);
             }
 
             if (patch.ReturnType.FullName == "System.Boolean" && kind == "Prefix")
@@ -349,6 +366,72 @@ namespace JinguPatcher
             {
                 il.InsertAfter(callInstr, il.Create(OpCodes.Pop));
             }
+        }
+
+        static void FixCoroutineIL(MethodDefinition target)
+        {
+            if (target.ReturnType.FullName == "System.Collections.IEnumerator")
+            {
+                target.Body.InitLocals = true;
+            }
+        }
+
+        static void InjectPostfixAllReturns(ILProcessor il, MethodDefinition target,
+            List<Instruction> argLoads, Instruction callInstr)
+        {
+            var rets = target.Body.Instructions
+                .Where(i => i.OpCode == OpCodes.Ret)
+                .ToList();
+
+            foreach (var ret in rets)
+            {
+                var loads = new List<Instruction>();
+                foreach (var load in argLoads)
+                {
+                    var newLoad = CloneInstruction(il, load);
+                    loads.Add(newLoad);
+                }
+                var newCall = il.Create(callInstr.OpCode, (MethodReference)callInstr.Operand);
+
+                il.InsertBefore(ret, newCall);
+                for (int i = 0; i < loads.Count; i++)
+                    il.InsertBefore(newCall, loads[i]);
+            }
+        }
+
+        static Instruction CloneInstruction(ILProcessor il, Instruction src)
+        {
+            if (src.Operand == null)
+                return il.Create(src.OpCode);
+            if (src.Operand is byte b)
+                return il.Create(src.OpCode, b);
+            if (src.Operand is sbyte sb)
+                return il.Create(src.OpCode, sb);
+            if (src.Operand is int i32)
+                return il.Create(src.OpCode, i32);
+            if (src.Operand is float f)
+                return il.Create(src.OpCode, f);
+            if (src.Operand is double d)
+                return il.Create(src.OpCode, d);
+            if (src.Operand is string s)
+                return il.Create(src.OpCode, s);
+            if (src.Operand is Instruction target)
+                return il.Create(src.OpCode, target);
+            if (src.Operand is Instruction[] targets)
+                return il.Create(src.OpCode, targets);
+            if (src.Operand is VariableDefinition var)
+                return il.Create(src.OpCode, var);
+            if (src.Operand is MethodReference mr)
+                return il.Create(src.OpCode, mr);
+            if (src.Operand is TypeReference tr)
+                return il.Create(src.OpCode, tr);
+            if (src.Operand is FieldReference fr)
+                return il.Create(src.OpCode, fr);
+            if (src.Operand is ParameterDefinition pd)
+                return il.Create(src.OpCode, pd);
+            if (src.Operand is CallSite cs)
+                return il.Create(src.OpCode, cs);
+            return il.Create(src.OpCode);
         }
 
         static List<Instruction> GetDefaultLoad(ILProcessor il, TypeReference type)
@@ -392,8 +475,18 @@ namespace JinguPatcher
 
             int patchParamCount = patch.Parameters.Count;
 
-            bool hasInstance = isInstance && patchParamCount > 0
-                && patch.Parameters[0].Name == "__instance";
+            bool hasInstance = false;
+            if (isInstance && patchParamCount > 0)
+            {
+                var firstParam = patch.Parameters[0];
+                var firstParamType = firstParam.ParameterType;
+                if (firstParamType.IsByReference)
+                    firstParamType = ((ByReferenceType)firstParamType).ElementType;
+
+                hasInstance = firstParam.Name == "__instance"
+                    || TypesMatch(firstParamType, target.DeclaringType);
+            }
+
             if (hasInstance)
             {
                 loads.Add(il.Create(OpCodes.Ldarg_0));
@@ -426,6 +519,14 @@ namespace JinguPatcher
             }
 
             return loads;
+        }
+
+        static bool TypesMatch(TypeReference a, TypeReference b)
+        {
+            if (a.Name != b.Name) return false;
+            var nsA = a.Namespace ?? "";
+            var nsB = b.Namespace ?? "";
+            return nsA == nsB;
         }
 
         static void InjectGameEntryCctor(ModuleDefinition module)
