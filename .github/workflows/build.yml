@@ -38,19 +38,16 @@ jobs:
           Copy-Item "src\JinguMod\bin\Release\JinguMod.dll" "$outDir\JinguMod.dll"
           Copy-Item "src\Patch\bin\Release\JinguModPatch.dll" "$outDir\Mods\JinguModPatch.dll"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: JinguPatcher
-          path: release\JinguPatcher\
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "release\JinguPatcher" -DestinationPath "JinguPatcher.zip" -Force
+
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/JinguPatcher/JinguPatcher.exe
-            release/JinguPatcher/Mono.Cecil.dll
-            release/JinguPatcher/JinguMod.dll
-            release/JinguPatcher/Mods/JinguModPatch.dll
+            JinguPatcher.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

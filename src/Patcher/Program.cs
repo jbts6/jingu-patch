@@ -116,6 +116,11 @@ namespace JinguPatcher
                                     var targetType = gameModule.GetType(targetTypeName);
                                     if (targetType == null)
                                     {
+                                        targetType = gameModule.GetTypes()
+                                            .FirstOrDefault(t => t.Name == targetTypeName);
+                                    }
+                                    if (targetType == null)
+                                    {
                                         Console.ForegroundColor = ConsoleColor.Yellow;
                                         Console.WriteLine($"  [SKIP] Type not found: {targetTypeName}");
                                         Console.ResetColor();
