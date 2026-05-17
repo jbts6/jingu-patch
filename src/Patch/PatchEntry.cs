@@ -159,6 +159,7 @@ namespace JinguModPatch
                             new int[] { 713, 100 },
                             new int[] { 2, 105, 713 }
                         }, "采集时有100%概率连续收获两次,每有2点技巧,此概率就提升1%"),
+                    new GlobalBuffData(121, "空钩无耗", 2, new int[] { 9 }, new int[][] { new int[] { 715, 100 } }, "钓鱼失败后有100%概率不消耗精力和体力"),
                     new GlobalBuffData(122, "春风拂面", 4, new int[] { 9 }, new int[][] { new int[] { 802, 50 } }, "所有NPC对你的初始好感度增加50点"),
                     new GlobalBuffData(123, "声威日隆", 1, new int[] { 9 }, new int[][] { new int[] { 803, 50 } }, "每成功完成一项掌门事务,就额外获得50点名望值"),
                     new GlobalBuffData(125, "信步闲游", 3, new int[] { 9 }, new int[][] { new int[] { 718, -100 } }, "每次在养成模式闲逛时,消耗的体力降低100%"),
@@ -334,7 +335,13 @@ namespace JinguModPatch
                             new int[] { 150 },
                             new int[] { 100 }
                         }, "受到伤害后,如果攻击者在自身周围一圈范围内,对其造成150点+100%自身所遭受伤害的真实伤害", "真气充盈在周身形成三尺气墙,受到伤害的同时能震伤对手"),
-                        new PassiveData(10790, "出生入死", 2, 0, new int[] { 89 }, new int[][] { new int[] { 100, 359 } }, "承受致命伤害时,气血最低降至1,回复100%最大气血,并获得【359】（每场战斗只生效一次）", "始之谓出,卒之谓入")
+                    new PassiveData(10790, "出生入死", 2, 0, new int[] { 89 }, new int[][] { new int[] { 100, 359 } }, "承受致命伤害时,气血最低降至1,回复100%最大气血,并获得【359】（每场战斗只生效一次）", "始之谓出,卒之谓入"),
+                    new PassiveData(10110, "疾风骤雨", 0, 0, new int[] { 129 }, new int[][] { new int[] { 100 } }, "使用招式后,有100%概率对射程范围内随机一名敌人进行1次普通攻击", "攻势如潮,如骤雨"),
+                    new PassiveData(10140, "久战不殆", 0, 0, new int[] { 131, 165 }, new int[][]
+                        {
+                            new int[] { 2, 5 },
+                            new int[] { 47 }
+                        }, "每隔2回合,在回合开始时获得5%最大气血的护盾,护盾被打破时获得【47】", "守势坚挺,久战不殆")
                 };
                 foreach (var data in dataList)
                     if (Passive.Dic.ContainsKey(data.m_id))
