@@ -11,7 +11,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-
+    permissions:
+      contents: write  # 这是创建 Release 所需的权限
     steps:
       - uses: actions/checkout@v4
 
