@@ -344,9 +344,9 @@ namespace JinguModPatch
             }
         }
 
-        // public static bool Prefix_GlobalData_AchieveCompleted(int id, ref bool __result) {
-        //     __result = true;
-        //     return false;
-        // }
+        public static bool Prefix_GlobalData_AchieveCompleted(int id)
+        {
+            return true;
+        }
     }
 }
