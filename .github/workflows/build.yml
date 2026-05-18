@@ -37,6 +37,7 @@ jobs:
           Copy-Item "src\Patcher\bin\Release\Mono.Cecil.dll" "$outDir\Mono.Cecil.dll"
           Copy-Item "src\JinguMod\bin\Release\JinguMod.dll" "$outDir\JinguMod.dll"
           Copy-Item "src\Patch\bin\Release\JinguModPatch.dll" "$outDir\Mods\JinguModPatch.dll"
+          Copy-Item "patcher.json" "$outDir\patcher.json"
 
       - name: Create ZIP archive
         shell: pwsh

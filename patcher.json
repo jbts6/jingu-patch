@@ -1,0 +1,11 @@
+{
+  "gameExe": "JinGu.exe",
+  "targetAssembly": "Assembly-CSharp.dll",
+  "managedSubdir": "JinGu_Data/Managed",
+  "entryType": "GameEntry",
+  "modAssembly": "JinguMod.dll",
+  "bootstrapType": "JinguMod.Bootstrap",
+  "patchNamespace": "JinguModPatch",
+  "patchEntryType": "PatchEntry",
+  "modsDir": "Mods"
+}

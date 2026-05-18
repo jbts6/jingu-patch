@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using MonoPatcher;
 
 namespace JinguMod
 {
@@ -13,7 +14,10 @@ namespace JinguMod
         {
             try
             {
-                var modsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Mods");
+                var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "patcher.json");
+                var config = PatcherConfig.Load(configPath);
+
+                var modsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, config.ModsDir);
                 if (Directory.Exists(modsDir))
                 {
                     foreach (var dllPath in Directory.GetFiles(modsDir, "*.dll"))
@@ -21,7 +25,7 @@ namespace JinguMod
                         try
                         {
                             var patchAsm = Assembly.LoadFrom(dllPath);
-                            var entryType = patchAsm.GetType("JinguModPatch.PatchEntry");
+                            var entryType = patchAsm.GetType(config.FullPatchTypeName);
                             if (entryType != null)
                             {
                                 var loadedField = entryType.GetField("Loaded");

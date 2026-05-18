@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using MonoPatcher;
 
 namespace JinguPatcher
 {
@@ -17,7 +18,10 @@ namespace JinguPatcher
 
         static int Main(string[] args)
         {
-            string gameDir = args.Length > 0 ? args[0] : FindGameDirectory();
+            string toolDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+            var config = PatcherConfig.Load(Path.Combine(toolDir, "patcher.json"));
+
+            string gameDir = args.Length > 0 ? args[0] : FindGameDirectory(config.GameExe);
             if (gameDir == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -28,31 +32,30 @@ namespace JinguPatcher
                 return 1;
             }
 
-            string toolDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
-            string managedDir = Path.Combine(gameDir, "JinGu_Data", "Managed");
-            string assemblyPath = Path.Combine(managedDir, "Assembly-CSharp.dll");
-            string gameModsDir = Path.Combine(gameDir, "Mods");
+            string managedDir = Path.Combine(gameDir, config.ManagedSubdir);
+            string assemblyPath = Path.Combine(managedDir, config.TargetAssembly);
+            string gameModsDir = Path.Combine(gameDir, config.ModsDir);
             string backupPath = assemblyPath + ".bak";
 
             if (!File.Exists(assemblyPath))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"[ERROR] Assembly-CSharp.dll not found: {assemblyPath}");
+                Console.WriteLine($"[ERROR] {config.TargetAssembly} not found: {assemblyPath}");
                 Console.ResetColor();
                 PauseIfDoubleClick();
                 return 1;
             }
 
-            CheckGameNotRunning();
+            CheckGameNotRunning(config.GameProcessName);
 
             Console.WriteLine($"Game directory : {gameDir}");
             Console.WriteLine($"Tool directory : {toolDir}");
             Console.WriteLine();
 
-            DeployFiles(toolDir, gameDir, managedDir, gameModsDir);
+            DeployFiles(toolDir, gameDir, managedDir, gameModsDir, config);
 
             var patchDlls = Directory.GetFiles(gameModsDir, "*.dll")
-                .Where(f => !Path.GetFileName(f).Equals("JinguMod.dll", StringComparison.OrdinalIgnoreCase))
+                .Where(f => !Path.GetFileName(f).Equals(config.ModAssembly, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             if (patchDlls.Count == 0)
@@ -117,17 +120,14 @@ namespace JinguPatcher
 
                                     foreach (var (typeName, methodName) in candidates)
                                     {
-                                        // 先精确匹配全限定名
                                         var t = gameModule.GetType(typeName);
                                         if (t == null)
                                         {
-                                            // 再按短名称匹配
                                             t = gameModule.GetTypes()
                                                 .FirstOrDefault(tt => tt.Name == typeName);
                                         }
                                         if (t != null)
                                         {
-                                            // 确认该类下确实有这个方法
                                             var m = t.Methods.FirstOrDefault(mm => mm.Name == methodName);
                                             if (m != null)
                                             {
@@ -176,7 +176,7 @@ namespace JinguPatcher
                     }
                 }
 
-                InjectGameEntryCctor(gameModule);
+                InjectGameEntryCctor(gameModule, config);
 
                 if (File.Exists(tempPath)) File.Delete(tempPath);
                 gameAsm.Write(tempPath);
@@ -193,16 +193,16 @@ namespace JinguPatcher
             return 0;
         }
 
-        static void DeployFiles(string toolDir, string gameDir, string managedDir, string gameModsDir)
+        static void DeployFiles(string toolDir, string gameDir, string managedDir, string gameModsDir, PatcherConfig config)
         {
             Console.WriteLine("--- Deploying files ---");
 
-            string toolJinguMod = Path.Combine(toolDir, "JinguMod.dll");
-            if (File.Exists(toolJinguMod))
+            string toolModDll = Path.Combine(toolDir, config.ModAssembly);
+            if (File.Exists(toolModDll))
             {
-                string dest = Path.Combine(managedDir, "JinguMod.dll");
-                Console.WriteLine($"  JinguMod.dll -> {dest}");
-                RetryFileOp(() => File.Copy(toolJinguMod, dest, overwrite: true));
+                string dest = Path.Combine(managedDir, config.ModAssembly);
+                Console.WriteLine($"  {config.ModAssembly} -> {dest}");
+                RetryFileOp(() => File.Copy(toolModDll, dest, overwrite: true));
             }
 
             string toolModsDir = Path.Combine(toolDir, "Mods");
@@ -219,16 +219,24 @@ namespace JinguPatcher
                 }
             }
 
+            string toolConfig = Path.Combine(toolDir, "patcher.json");
+            if (File.Exists(toolConfig))
+            {
+                string destConfig = Path.Combine(gameDir, "patcher.json");
+                Console.WriteLine($"  patcher.json -> {destConfig}");
+                RetryFileOp(() => File.Copy(toolConfig, destConfig, overwrite: true));
+            }
+
             Console.WriteLine();
         }
 
-        static void CheckGameNotRunning()
+        static void CheckGameNotRunning(string processName)
         {
-            var procs = Process.GetProcessesByName("JinGu");
+            var procs = Process.GetProcessesByName(processName);
             if (procs.Length > 0)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] JinGu.exe is still running! Please close the game first.");
+                Console.WriteLine($"[ERROR] {processName}.exe is still running! Please close the game first.");
                 Console.ResetColor();
                 foreach (var p in procs)
                 {
@@ -282,12 +290,12 @@ namespace JinguPatcher
             }
         }
 
-        static string FindGameDirectory()
+        static string FindGameDirectory(string gameExe)
         {
             string dir = AppDomain.CurrentDomain.BaseDirectory;
             while (dir != null)
             {
-                if (File.Exists(Path.Combine(dir, "JinGu.exe")))
+                if (File.Exists(Path.Combine(dir, gameExe)))
                     return dir;
                 dir = Path.GetDirectoryName(dir);
             }
@@ -529,13 +537,13 @@ namespace JinguPatcher
             return nsA == nsB;
         }
 
-        static void InjectGameEntryCctor(ModuleDefinition module)
+        static void InjectGameEntryCctor(ModuleDefinition module, PatcherConfig config)
         {
-            var gameEntry = module.GetType("GameEntry");
+            var gameEntry = module.GetType(config.EntryType);
             if (gameEntry == null)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[WARN] GameEntry type not found, skipping Bootstrap injection");
+                Console.WriteLine($"[WARN] {config.EntryType} type not found, skipping Bootstrap injection");
                 Console.ResetColor();
                 return;
             }
@@ -550,7 +558,7 @@ namespace JinguPatcher
 
                 var il = existing.Body.GetILProcessor();
                 var first = existing.Body.Instructions[0];
-                var instrs = BuildBootstrapInitInstrs(module);
+                var instrs = BuildBootstrapInitInstrs(module, config);
                 for (int i = instrs.Count - 1; i >= 0; i--)
                     il.InsertBefore(first, instrs[i]);
             }
@@ -563,7 +571,7 @@ namespace JinguPatcher
                     module.TypeSystem.Void);
 
                 var il = cctor.Body.GetILProcessor();
-                foreach (var instr in BuildBootstrapInitInstrs(module))
+                foreach (var instr in BuildBootstrapInitInstrs(module, config))
                     il.Append(instr);
                 il.Emit(OpCodes.Ret);
 
@@ -574,7 +582,7 @@ namespace JinguPatcher
             }
         }
 
-        static List<Instruction> BuildBootstrapInitInstrs(ModuleDefinition module)
+        static List<Instruction> BuildBootstrapInitInstrs(ModuleDefinition module, PatcherConfig config)
         {
             var instrs = new List<Instruction>();
 
@@ -587,9 +595,9 @@ namespace JinguPatcher
             var fiGetValue = module.ImportReference(
                 typeof(System.Reflection.FieldInfo).GetMethod("GetValue", new[] { typeof(object) }));
 
-            instrs.Add(Instruction.Create(OpCodes.Ldstr, "JinguMod"));
+            instrs.Add(Instruction.Create(OpCodes.Ldstr, config.ModAssemblyName));
             instrs.Add(Instruction.Create(OpCodes.Call, asmLoad));
-            instrs.Add(Instruction.Create(OpCodes.Ldstr, "JinguMod.Bootstrap"));
+            instrs.Add(Instruction.Create(OpCodes.Ldstr, config.BootstrapType));
             instrs.Add(Instruction.Create(OpCodes.Callvirt, asmGetType));
             instrs.Add(Instruction.Create(OpCodes.Ldstr, "Loaded"));
             instrs.Add(Instruction.Create(OpCodes.Callvirt, typeGetField));
